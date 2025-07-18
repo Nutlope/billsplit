@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=Nutlope&project=billsplit&lang=id">Bahasa Indonesia</a>
+      </div>
+    </div>
+  </details>
+</div>
+
 <a href="https://www.usebillsplit.com/">
 <img alt="Self" src="./public/og.png">
 </a>
