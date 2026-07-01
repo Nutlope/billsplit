@@ -4,7 +4,7 @@ export default function Footer() {
       <p className="text-xs font-medium text-center mb-2 sm:mb-0 sm:mr-2">
         <span className="text-[#99a1af]">Powered by </span>
         <a
-          href="https://togetherai.link/"
+          href="https://togetherai.link/?utm_source=billsplit&utm_medium=referral&utm_campaign=example-app"
           target="_blank"
           className="text-[#4a5565] underline"
         >
