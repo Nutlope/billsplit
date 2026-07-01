@@ -27,7 +27,7 @@
 ## Cloning & running
 
 1. Fork or clone the repo
-2. Create an account at https://togetherai.link for the LLM
+2. Create an account at https://togetherai.link/?utm_source=billsplit&utm_medium=referral&utm_campaign=example-app for the LLM
 3. Create an account at https://aws.amazon.com/ for the S3 bucket
 4. Create a `.env` (use the `.example.env` for reference) and replace the API keys
 5. Run `pnpm install` and `pnpm run dev` to install dependencies and run locally
