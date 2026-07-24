@@ -4,14 +4,23 @@ import dedent from "dedent";
 import {
   endAndFlushBraintrustSpan,
   logBraintrustEvent,
-  sanitizedBraintrustError,
   startBraintrustSpan,
 } from "./braintrust";
 import {
   buildReceiptTraceStart,
   buildReceiptTraceSuccess,
 } from "./receipt-tracing";
-import { extractDataUrlBase64 } from "./trace-safety";
+import {
+  extractDataUrlBase64,
+  serializeBraintrustError,
+} from "./trace-safety";
+import {
+  DEFAULT_VISION_MODEL,
+  RECEIPT_TRACE_PHASES,
+  type ReceiptTracePhase,
+} from "./vision-model-config";
+
+export { DEFAULT_VISION_MODEL } from "./vision-model-config";
 
 export const extractSchema = z.object({
   businessName: z
@@ -40,8 +49,6 @@ export const extractSchema = z.object({
 });
 
 export type ExtractSchemaType = z.infer<typeof extractSchema>;
-
-export const DEFAULT_VISION_MODEL = "Qwen/Qwen3.5-9B";
 
 const systemPrompt = dedent`
   You are a receipt data extraction API. You receive receipt images and must return valid JSON data.
@@ -93,11 +100,11 @@ export async function scrapeBill({
   const startedAt = performance.now();
   let providerStartedAt: number | undefined;
   let providerDurationMs: number | undefined;
-  let phase = "provider";
+  let phase: ReceiptTracePhase = RECEIPT_TRACE_PHASES.provider;
 
   try {
     providerStartedAt = performance.now();
-    const extract = await togetherBaseClient.chat.completions.create({
+    const completion = await togetherBaseClient.chat.completions.create({
       model: model,
       messages: [
         {
@@ -126,8 +133,8 @@ export async function scrapeBill({
     });
     providerDurationMs = performance.now() - providerStartedAt;
 
-    if (extract?.choices?.[0]?.message?.content) {
-      let content = extract.choices[0].message.content.trim();
+    if (completion?.choices?.[0]?.message?.content) {
+      let content = completion.choices[0].message.content.trim();
 
       // Handle cases where the model returns markdown code blocks
       if (content.startsWith("```json")) {
@@ -142,12 +149,12 @@ export async function scrapeBill({
         content = jsonMatch[0];
       }
 
-      phase = "response-validation";
+      phase = RECEIPT_TRACE_PHASES.responseValidation;
       const receipt = extractSchema.parse(JSON.parse(content));
       logBraintrustEvent(
         span,
         buildReceiptTraceSuccess({
-          response: extract,
+          response: completion,
           receipt,
           model,
           durationMs: performance.now() - startedAt,
@@ -156,7 +163,7 @@ export async function scrapeBill({
       );
       return receipt;
     }
-    phase = "provider-response";
+    phase = RECEIPT_TRACE_PHASES.providerResponse;
     throw new Error(`No content returned from vision model: ${model}`);
   } catch (error) {
     const durationMs = performance.now() - startedAt;
@@ -170,12 +177,13 @@ export async function scrapeBill({
     }
 
     const traceError =
-      phase === "response-validation"
+      phase === RECEIPT_TRACE_PHASES.responseValidation
         ? new Error("Vision response failed schema validation")
         : error;
     logBraintrustEvent(span, {
-      error: sanitizedBraintrustError(traceError, [
+      error: serializeBraintrustError(traceError, [
         process.env.TOGETHER_API_KEY,
+        process.env.BRAINTRUST_API_KEY,
         billUrl,
         extractDataUrlBase64(billUrl),
       ]),

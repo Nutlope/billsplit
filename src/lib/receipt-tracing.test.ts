@@ -8,20 +8,17 @@ import {
   extractDataUrlBase64,
   serializeBraintrustError,
 } from "./trace-safety";
+import { DEFAULT_VISION_MODEL } from "./vision-model-config";
 
 describe("receipt tracing", () => {
-  it("never records receipt URLs, image payloads, or API keys", () => {
-    const secret = "together-secret-key";
-    const receiptUrl = "https://private.example/receipt.jpg";
+  it("records only a boolean receipt-image summary at span start", () => {
     const trace = buildReceiptTraceStart({
-      model: "Qwen/Qwen3.5-9B",
+      model: DEFAULT_VISION_MODEL,
       traceMarker: "privacy-test",
     });
     const serialized = JSON.stringify(trace);
 
     expect(trace.input.hasReceiptImage).toBe(true);
-    expect(serialized).not.toContain(secret);
-    expect(serialized).not.toContain(receiptUrl);
     expect(serialized).not.toContain("image_url");
     expect(serialized).not.toContain("base64");
   });
@@ -31,7 +28,7 @@ describe("receipt tracing", () => {
     const trace = buildReceiptTraceSuccess({
       response: {
         id: "response-1",
-        model: "Qwen/Qwen3.5-9B",
+        model: DEFAULT_VISION_MODEL,
         object: "chat.completion",
         choices: [{ finish_reason: "stop" }],
         usage: {
@@ -47,7 +44,7 @@ describe("receipt tracing", () => {
         tax: 12,
         tip: null,
       },
-      model: "Qwen/Qwen3.5-9B",
+      model: DEFAULT_VISION_MODEL,
       durationMs: 2_500,
       providerDurationMs: 2_300,
     });
@@ -93,7 +90,7 @@ describe("receipt tracing", () => {
 
   it("estimates current production-model token cost", () => {
     expect(
-      estimateReceiptExtractionCost("Qwen/Qwen3.5-9B", {
+      estimateReceiptExtractionCost(DEFAULT_VISION_MODEL, {
         prompt_tokens: 1_000,
         completion_tokens: 200,
         total_tokens: 1_200,

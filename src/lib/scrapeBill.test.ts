@@ -1,10 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   endAndFlushBraintrustSpan: vi.fn(),
   logBraintrustEvent: vi.fn(),
-  sanitizedBraintrustError: vi.fn(),
   span: { id: "test-span" },
   startBraintrustSpan: vi.fn(),
 }));
@@ -22,24 +21,38 @@ vi.mock("./clients", () => ({
 vi.mock("./braintrust", () => ({
   endAndFlushBraintrustSpan: mocks.endAndFlushBraintrustSpan,
   logBraintrustEvent: mocks.logBraintrustEvent,
-  sanitizedBraintrustError: mocks.sanitizedBraintrustError,
   startBraintrustSpan: mocks.startBraintrustSpan,
 }));
 
 import { DEFAULT_VISION_MODEL, scrapeBill } from "./scrapeBill";
+
+const originalEnvironment = {
+  braintrustApiKey: process.env.BRAINTRUST_API_KEY,
+  togetherApiKey: process.env.TOGETHER_API_KEY,
+};
 
 describe("scrapeBill", () => {
   beforeEach(() => {
     mocks.create.mockReset();
     mocks.endAndFlushBraintrustSpan.mockReset();
     mocks.logBraintrustEvent.mockReset();
-    mocks.sanitizedBraintrustError.mockReset();
     mocks.startBraintrustSpan.mockReset();
     mocks.startBraintrustSpan.mockReturnValue(mocks.span);
+    process.env.BRAINTRUST_API_KEY = "braintrust-test-secret";
+    process.env.TOGETHER_API_KEY = "together-test-secret";
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    restoreEnvironment(
+      "BRAINTRUST_API_KEY",
+      originalEnvironment.braintrustApiKey,
+    );
+    restoreEnvironment("TOGETHER_API_KEY", originalEnvironment.togetherApiKey);
   });
 
   it("uses the production vision model with schema-constrained, privacy-safe tracing", async () => {
-    const billUrl = "https://example.com/receipt.jpg";
+    const billUrl = "https://private.example/receipt-private-marker.jpg";
     const response = {
       businessName: "Example Restaurant",
       date: "2026-07-24",
@@ -108,9 +121,46 @@ describe("scrapeBill", () => {
     expect(
       JSON.stringify(mocks.startBraintrustSpan.mock.calls),
     ).not.toContain(billUrl);
-    expect(JSON.stringify(mocks.logBraintrustEvent.mock.calls)).not.toContain(
-      "Example Restaurant",
-    );
+    const serializedTraceEvents = JSON.stringify([
+      mocks.startBraintrustSpan.mock.calls,
+      mocks.logBraintrustEvent.mock.calls,
+    ]);
+    expect(serializedTraceEvents).not.toContain("braintrust-test-secret");
+    expect(serializedTraceEvents).not.toContain("together-test-secret");
+    expect(serializedTraceEvents).not.toContain("Example Restaurant");
+    expect(serializedTraceEvents).not.toContain("2026-07-24");
+    expect(serializedTraceEvents).not.toContain("Lunch");
     expect(mocks.endAndFlushBraintrustSpan).toHaveBeenCalledWith(mocks.span);
   });
+
+  it("redacts live environment secrets and the receipt URL from provider errors", async () => {
+    const billUrl = "https://private.example/receipt-error-marker.jpg";
+    const providerError = new Error(
+      `Provider rejected together-test-secret, braintrust-test-secret, and ${billUrl}`,
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.create.mockRejectedValue(providerError);
+
+    await expect(scrapeBill({ billUrl })).rejects.toBe(providerError);
+
+    const serializedErrorEvent = JSON.stringify(
+      mocks.logBraintrustEvent.mock.calls,
+    );
+    expect(serializedErrorEvent).not.toContain("together-test-secret");
+    expect(serializedErrorEvent).not.toContain("braintrust-test-secret");
+    expect(serializedErrorEvent).not.toContain(billUrl);
+    expect(serializedErrorEvent).toContain("[REDACTED]");
+    expect(mocks.endAndFlushBraintrustSpan).toHaveBeenCalledWith(mocks.span);
+    consoleError.mockRestore();
+  });
 });
+
+function restoreEnvironment(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}

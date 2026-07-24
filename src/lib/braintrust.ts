@@ -5,7 +5,6 @@ import {
   type Span,
   type StartSpanArgs,
 } from "braintrust";
-import { serializeBraintrustError } from "./trace-safety";
 
 let logger: Logger<true> | null | undefined;
 
@@ -57,11 +56,4 @@ export async function endAndFlushBraintrustSpan(span: Span | undefined) {
   } catch (error) {
     console.warn("Braintrust span flush failed:", error);
   }
-}
-
-export function sanitizedBraintrustError(
-  error: unknown,
-  sensitiveValues: Array<string | null | undefined>,
-) {
-  return serializeBraintrustError(error, sensitiveValues);
 }

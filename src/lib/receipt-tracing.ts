@@ -1,4 +1,8 @@
 import type { ExtractSchemaType } from "./scrapeBill";
+import {
+  RECEIPT_TRACE_PHASES,
+  VISION_MODEL_PRICING_PER_MILLION_TOKENS,
+} from "./vision-model-config";
 
 type ReceiptTraceInput = {
   model: string;
@@ -17,16 +21,6 @@ type TogetherChatResponse = {
     completion_tokens?: number;
     total_tokens?: number;
   } | null;
-};
-
-const MODEL_PRICING_PER_MILLION_TOKENS: Record<
-  string,
-  { input: number; output: number }
-> = {
-  "Qwen/Qwen3.5-9B": {
-    input: 0.17,
-    output: 0.25,
-  },
 };
 
 export function buildReceiptTraceStart({
@@ -52,7 +46,7 @@ export function estimateReceiptExtractionCost(
   model: string,
   usage: TogetherChatResponse["usage"],
 ) {
-  const pricing = MODEL_PRICING_PER_MILLION_TOKENS[model];
+  const pricing = VISION_MODEL_PRICING_PER_MILLION_TOKENS[model];
   if (!pricing || !usage) return null;
 
   const promptTokens = usage.prompt_tokens ?? 0;
@@ -108,7 +102,7 @@ export function buildReceiptTraceSuccess({
     },
     metadata: {
       success: true,
-      phase: "response-validation",
+      phase: RECEIPT_TRACE_PHASES.responseValidation,
       model,
       responseId: response.id ?? null,
       responseModel: response.model ?? null,
@@ -121,8 +115,8 @@ export function buildReceiptTraceSuccess({
           : {
               currency: "USD",
               pricingUnit: "million_tokens",
-              input: MODEL_PRICING_PER_MILLION_TOKENS[model].input,
-              output: MODEL_PRICING_PER_MILLION_TOKENS[model].output,
+              input: VISION_MODEL_PRICING_PER_MILLION_TOKENS[model].input,
+              output: VISION_MODEL_PRICING_PER_MILLION_TOKENS[model].output,
             },
     },
     metrics,

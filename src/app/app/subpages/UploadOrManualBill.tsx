@@ -6,8 +6,9 @@ import { UseFormReturn } from "react-hook-form";
 import { BillForm } from "../types";
 import Dropzone from "react-dropzone";
 import { useEffect, useMemo, useState } from "react";
-import { useS3Upload } from "next-s3-upload";
 import { ExtractSchemaType } from "@/lib/scrapeBill";
+import { uploadReceiptImage } from "@/lib/client-receipt-upload";
+import { MAX_RECEIPT_UPLOAD_BYTES } from "@/lib/image-upload";
 import { createId } from "../utils";
 import Decimal from "decimal.js";
 
@@ -24,7 +25,6 @@ export const UploadOrManualBill = ({
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { uploadToS3 } = useS3Upload();
   const { register, watch } = formObject;
 
   useEffect(() => {
@@ -49,9 +49,7 @@ export const UploadOrManualBill = ({
     setIsLoading(true);
     localStorage.removeItem("billFormData");
     try {
-      const uploadedBill = await uploadToS3(file);
-
-      uploadedBill.url;
+      const uploadedBill = await uploadReceiptImage(file);
 
       const response = await fetch("/api/vision", {
         method: "POST",
@@ -159,8 +157,7 @@ export const UploadOrManualBill = ({
         onDrop={(acceptedFiles) => {
           if (isLoading) return;
           const file = acceptedFiles[0];
-          if (file.size > 15 * 1024 * 1024) {
-            // 10MB in bytes
+          if (file.size > MAX_RECEIPT_UPLOAD_BYTES) {
             // toast({
             //   title: "📁 File Too Large",
             //   description: "⚠️ File size must be less than 15MB",
