@@ -71,18 +71,6 @@ export async function scrapeBill({
     target: "openapi-3.0",
   });
 
-  // together-ai 0.32 types predate Together's current structured-output fields.
-  const structuredOutputOptions = {
-    reasoning: { enabled: false },
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "receipt",
-        schema: jsonSchema,
-      },
-    },
-  };
-
   const extract = await togetherBaseClient.chat.completions.create({
     model: model,
     messages: [
@@ -99,7 +87,14 @@ export async function scrapeBill({
         ],
       },
     ],
-    ...structuredOutputOptions,
+    reasoning: { enabled: false },
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "receipt",
+        schema: jsonSchema,
+      },
+    },
     temperature: 0, // Make responses more deterministic
     max_tokens: 1000, // Limit response length
   });
