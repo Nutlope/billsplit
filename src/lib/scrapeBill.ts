@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { togetherBaseClient } from "./clients";
 import dedent from "dedent";
+import {
+  endAndFlushBraintrustSpan,
+  logBraintrustEvent,
+  sanitizedBraintrustError,
+  startBraintrustSpan,
+} from "./braintrust";
+import {
+  buildReceiptTraceStart,
+  buildReceiptTraceSuccess,
+} from "./receipt-tracing";
+import { extractDataUrlBase64 } from "./trace-safety";
 
 export const extractSchema = z.object({
   businessName: z
@@ -71,56 +82,113 @@ export async function scrapeBill({
     target: "openapi-3.0",
   });
 
-  const extract = await togetherBaseClient.chat.completions.create({
-    model: model,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: systemPrompt },
-          {
-            type: "image_url",
-            image_url: {
-              url: billUrl,
-            },
-          },
-        ],
-      },
-    ],
-    reasoning: { enabled: false },
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "receipt",
-        schema: jsonSchema,
-      },
-    },
-    temperature: 0, // Make responses more deterministic
-    max_tokens: 1000, // Limit response length
+  const span = startBraintrustSpan({
+    name: "billsplit.extract-receipt",
+    type: "llm",
+    event: buildReceiptTraceStart({
+      model,
+      traceMarker: process.env.BRAINTRUST_TRACE_MARKER,
+    }),
   });
+  const startedAt = performance.now();
+  let providerStartedAt: number | undefined;
+  let providerDurationMs: number | undefined;
+  let phase = "provider";
 
-  if (extract?.choices?.[0]?.message?.content) {
-    let content = extract.choices[0].message.content.trim();
+  try {
+    providerStartedAt = performance.now();
+    const extract = await togetherBaseClient.chat.completions.create({
+      model: model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: systemPrompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: billUrl,
+              },
+            },
+          ],
+        },
+      ],
+      reasoning: { enabled: false },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "receipt",
+          schema: jsonSchema,
+        },
+      },
+      temperature: 0, // Make responses more deterministic
+      max_tokens: 1000, // Limit response length
+    });
+    providerDurationMs = performance.now() - providerStartedAt;
 
-    // Handle cases where the model returns markdown code blocks
-    if (content.startsWith('```json')) {
-      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (content.startsWith('```')) {
-      content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    if (extract?.choices?.[0]?.message?.content) {
+      let content = extract.choices[0].message.content.trim();
+
+      // Handle cases where the model returns markdown code blocks
+      if (content.startsWith("```json")) {
+        content = content.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (content.startsWith("```")) {
+        content = content.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+
+      // Try to extract JSON from text that might contain explanations
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = jsonMatch[0];
+      }
+
+      phase = "response-validation";
+      const receipt = extractSchema.parse(JSON.parse(content));
+      logBraintrustEvent(
+        span,
+        buildReceiptTraceSuccess({
+          response: extract,
+          receipt,
+          model,
+          durationMs: performance.now() - startedAt,
+          providerDurationMs,
+        }),
+      );
+      return receipt;
+    }
+    phase = "provider-response";
+    throw new Error(`No content returned from vision model: ${model}`);
+  } catch (error) {
+    const durationMs = performance.now() - startedAt;
+    const metrics: Record<string, number> = {
+      duration_ms: durationMs,
+    };
+    if (providerDurationMs !== undefined) {
+      metrics.provider_duration_ms = providerDurationMs;
+    } else if (providerStartedAt !== undefined) {
+      metrics.provider_duration_ms = performance.now() - providerStartedAt;
     }
 
-    // Try to extract JSON from text that might contain explanations
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      content = jsonMatch[0];
-    }
-
-    try {
-      return extractSchema.parse(JSON.parse(content));
-    } catch (error) {
-      console.error('Failed to parse JSON response:', content);
-      throw error;
-    }
+    const traceError =
+      phase === "response-validation"
+        ? new Error("Vision response failed schema validation")
+        : error;
+    logBraintrustEvent(span, {
+      error: sanitizedBraintrustError(traceError, [
+        process.env.TOGETHER_API_KEY,
+        billUrl,
+        extractDataUrlBase64(billUrl),
+      ]),
+      metadata: {
+        success: false,
+        phase,
+        model,
+      },
+      metrics,
+    });
+    console.error(`Receipt extraction failed during ${phase}`);
+    throw error;
+  } finally {
+    await endAndFlushBraintrustSpan(span);
   }
-  throw new Error(`No content returned from vision model: ${model}`);
 }

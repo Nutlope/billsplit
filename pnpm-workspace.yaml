@@ -1,5 +1,6 @@
 allowBuilds:
   autoevals: true
   better-sqlite3: true
+  braintrust: true
   esbuild: true
   sharp: true
