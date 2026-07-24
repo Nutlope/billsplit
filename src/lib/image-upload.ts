@@ -90,6 +90,48 @@ export function createReceiptObjectKey(
   return `next-s3-uploads/receipts/${crypto.randomUUID()}.${extension}`;
 }
 
+export function assertReceiptObjectKey(key: unknown): string {
+  if (
+    typeof key !== "string" ||
+    !/^next-s3-uploads\/receipts\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/i.test(
+      key,
+    )
+  ) {
+    throw new ReceiptUploadError("Invalid receipt upload key", 400);
+  }
+
+  return key;
+}
+
+export function receiptUrlMatchesKey(
+  receiptUrl: unknown,
+  key: string,
+  {
+    bucket,
+    region,
+  }: {
+    bucket: string | undefined;
+    region: string | undefined;
+  },
+) {
+  if (typeof receiptUrl !== "string" || !bucket || !region) return false;
+
+  try {
+    const url = new URL(receiptUrl);
+    const allowedHosts = new Set([
+      `${bucket}.s3.${region}.amazonaws.com`,
+      `${bucket}.s3.amazonaws.com`,
+    ]);
+    return (
+      url.protocol === "https:" &&
+      allowedHosts.has(url.hostname) &&
+      decodeURIComponent(url.pathname) === `/${key}`
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isSupportedReceiptImageType(
   value: string,
 ): value is SupportedReceiptImageType {

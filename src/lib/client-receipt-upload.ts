@@ -1,6 +1,7 @@
 type PresignedReceiptPost = {
   url: string;
   fields: Record<string, string>;
+  key: string;
   receiptUrl: string;
 };
 
@@ -36,7 +37,7 @@ export async function uploadReceiptImage(file: File) {
     throw new Error("Failed to upload receipt image");
   }
 
-  return { url: post.receiptUrl };
+  return { key: post.key, url: post.receiptUrl };
 }
 
 async function getErrorMessage(response: Response, fallback: string) {

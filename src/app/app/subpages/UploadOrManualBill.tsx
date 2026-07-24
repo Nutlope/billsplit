@@ -55,6 +55,7 @@ export const UploadOrManualBill = ({
         method: "POST",
         body: JSON.stringify({
           billUrl: uploadedBill.url,
+          billKey: uploadedBill.key,
         }),
         headers: {
           "Content-Type": "application/json",

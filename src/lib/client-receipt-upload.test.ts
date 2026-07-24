@@ -12,6 +12,7 @@ describe("uploadReceiptImage", () => {
       .mockResolvedValueOnce(
         Response.json({
           url: "https://test-bucket.s3.amazonaws.com",
+          key: "next-s3-uploads/receipts/test.jpg",
           fields: {
             key: "next-s3-uploads/receipts/test.jpg",
             "Content-Type": "image/jpeg",
@@ -27,6 +28,7 @@ describe("uploadReceiptImage", () => {
     });
 
     await expect(uploadReceiptImage(file)).resolves.toEqual({
+      key: "next-s3-uploads/receipts/test.jpg",
       url: "https://test-bucket.s3.amazonaws.com/next-s3-uploads/receipts/test.jpg?signed=true",
     });
 

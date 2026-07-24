@@ -1,7 +1,12 @@
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
+  assertReceiptObjectKey,
   createReceiptObjectKey,
   RECEIPT_DOWNLOAD_EXPIRY_SECONDS,
   RECEIPT_UPLOAD_EXPIRY_SECONDS,
@@ -52,4 +57,29 @@ export async function createReceiptUploadPost(
     expiresIn: RECEIPT_UPLOAD_EXPIRY_SECONDS,
     maxBytes: request.size,
   };
+}
+
+export async function removeReceiptObject(key: unknown) {
+  const receiptKey = assertReceiptObjectKey(key);
+  const { bucket, client } = getS3();
+
+  try {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: receiptKey,
+      }),
+    );
+  } catch {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: receiptKey,
+        Body: new Uint8Array(),
+        ContentType: "application/octet-stream",
+        ContentDisposition: "attachment",
+        CacheControl: RECEIPT_CACHE_CONTROL,
+      }),
+    );
+  }
 }
