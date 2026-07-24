@@ -65,7 +65,10 @@ export const UploadOrManualBill = ({
 
       const extractedData = (await response.json()) as ExtractSchemaType;
 
-      formObject.setValue("businessName", extractedData.businessName);
+      formObject.setValue(
+        "businessName",
+        extractedData.businessName ?? undefined,
+      );
       extractedData.date &&
         formObject.setValue("date", new Date(extractedData.date));
       formObject.setValue(

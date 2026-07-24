@@ -5,9 +5,9 @@ import dedent from "dedent";
 export const extractSchema = z.object({
   businessName: z
     .string()
-    .optional()
+    .nullable()
     .describe("Name of the business where the bill was created"),
-  date: z.string().optional().describe("Date when the bill was created"),
+  date: z.string().nullable().describe("Date when the bill was created"),
   billItems: z
     .array(
       z.object({
@@ -18,17 +18,19 @@ export const extractSchema = z.object({
     .describe("List of items in the bill"),
   tax: z
     .number()
-    .optional()
+    .nullable()
     .describe("Tax amount, not percentage we need money amount"),
   tip: z
     .number()
-    .optional()
+    .nullable()
     .describe(
       "Tip or Gratuity amount, not percentage we need money amount and if multiple tips are shown just output the medium one"
     ),
 });
 
 export type ExtractSchemaType = z.infer<typeof extractSchema>;
+
+export const DEFAULT_VISION_MODEL = "Qwen/Qwen3.5-9B";
 
 const systemPrompt = dedent`
   You are a receipt data extraction API. You receive receipt images and must return valid JSON data.
@@ -60,7 +62,7 @@ const systemPrompt = dedent`
 
 export async function scrapeBill({
   billUrl,
-  model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+  model = DEFAULT_VISION_MODEL,
 }: {
   billUrl: string;
   model?: string;
@@ -68,6 +70,18 @@ export async function scrapeBill({
   const jsonSchema = z.toJSONSchema(extractSchema, {
     target: "openapi-3.0",
   });
+
+  // together-ai 0.32 types predate Together's current structured-output fields.
+  const structuredOutputOptions = {
+    reasoning: { enabled: false },
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "receipt",
+        schema: jsonSchema,
+      },
+    },
+  };
 
   const extract = await togetherBaseClient.chat.completions.create({
     model: model,
@@ -85,7 +99,7 @@ export async function scrapeBill({
         ],
       },
     ],
-    response_format: { type: "json_object", schema: jsonSchema },
+    ...structuredOutputOptions,
     temperature: 0, // Make responses more deterministic
     max_tokens: 1000, // Limit response length
   });
@@ -107,12 +121,11 @@ export async function scrapeBill({
     }
 
     try {
-      const output = JSON.parse(content);
-      return output;
+      return extractSchema.parse(JSON.parse(content));
     } catch (error) {
       console.error('Failed to parse JSON response:', content);
       throw error;
     }
   }
-  throw new Error("No content returned from Llama 4 vision");
+  throw new Error(`No content returned from vision model: ${model}`);
 }
