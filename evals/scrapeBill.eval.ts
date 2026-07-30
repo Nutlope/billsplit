@@ -1,17 +1,17 @@
 import { evalite } from "evalite";
 import { JSONDiff } from "autoevals";
-import { scrapeBill } from "../src/lib/scrapeBill";
+import {
+  DEFAULT_VISION_MODEL,
+  scrapeBill,
+} from "../src/lib/scrapeBill";
 import { billEvals } from "./billsEvals";
 import { billScorer } from "./billScorer";
 
 const visionModels = [
-  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-  "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-  "Qwen/Qwen2.5-VL-72B-Instruct",
-  "moonshotai/Kimi-K2.5",
-  "google/gemma-3n-E4B-it",
-  "ServiceNow-AI/Apriel-1.5-15b-Thinker",
-  "ServiceNow-AI/Apriel-1.6-15b-Thinker",
+  DEFAULT_VISION_MODEL,
+  "google/gemma-4-31B-it",
+  "MiniMaxAI/MiniMax-M3",
+  "moonshotai/Kimi-K2.6",
 ];
 
 visionModels.map((model) => {

@@ -1,0 +1,15 @@
+allowBuilds:
+  autoevals: true
+  better-sqlite3: true
+  braintrust: true
+  esbuild: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1094.0'
+  - '@aws-sdk/s3-presigned-post@3.1094.0'
+  - '@aws-sdk/s3-request-presigner@3.1094.0'
+overrides:
+  fast-uri: 3.1.4
+  picomatch: 4.0.5
+  postcss: 8.5.22
+  sharp: 0.35.3
