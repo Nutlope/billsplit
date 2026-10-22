@@ -31,8 +31,8 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2(@types/react@19.2.18)(react@19.2.9)
       braintrust:
-        specifier: ^3.39.0
-        version: 3.39.0(@aws-sdk/credential-provider-web-identity@3.972.66)(@types/react@19.2.18)(zod@4.4.3)
+        specifier: ~3.38.0
+        version: 3.38.0(@aws-sdk/credential-provider-web-identity@3.972.66)(@types/react@19.2.18)(zod@4.4.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1673,8 +1673,8 @@ packages:
     resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
 
-  braintrust@3.39.0:
-    resolution: {integrity: sha512-f8fDy08MwSRql8Ojdu7q83HwIbWm2aImWawqbKjLrcR9uh5FyR6UEru69gcBnIPlQ47pcsH6AGfO8GPQEDHApg==}
+  braintrust@3.38.0:
+    resolution: {integrity: sha512-zS+aBdTmruMruIECNdK79iMztxzias3DnYq+f6ZLUSfbL/BKbYTArgnPMhmeC68h/IunmBQ3xsoond2Y9H5QJA==}
     hasBin: true
     peerDependencies:
       '@types/react': '>=18'
@@ -4280,7 +4280,7 @@ snapshots:
     dependencies:
       balanced-match: 4.0.4
 
-  braintrust@3.39.0(@aws-sdk/credential-provider-web-identity@3.972.66)(@types/react@19.2.18)(zod@4.4.3):
+  braintrust@3.38.0(@aws-sdk/credential-provider-web-identity@3.972.66)(@types/react@19.2.18)(zod@4.4.3):
     dependencies:
       '@next/env': 14.2.35
       '@vercel/functions': 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.66)

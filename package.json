@@ -22,7 +22,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1094.0",
     "@radix-ui/react-popover": "^1.1.13",
     "@radix-ui/react-slot": "^1.2.2",
-    "braintrust": "^3.39.0",
+    "braintrust": "~3.38.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
